@@ -9,6 +9,7 @@ config_data = config.data['baseConf']
 
 
 def deviceStart():
+    # 从配置文件中读取模拟器启动路径
     devicePath = config_data['simulator_path']
     print('devicePath:', devicePath)
     os.popen(devicePath)
@@ -58,7 +59,8 @@ def checkFrida():
 
 
 def FridaConnect():
-    cmd = 'adb shell < source/frida-server_start.bat'
+    # 执行shell脚本启动frida-server（修改为Linux的.sh文件）
+    cmd = 'adb shell < source/frida-server_start.sh'  # 改为.sh文件
     os.popen(cmd)
 
 

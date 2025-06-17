@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import sys
 
 
 class Log:
@@ -8,26 +9,35 @@ class Log:
         self.api_header = []
         self.intent_header = []
         self.permission_header = []
-        self.per_int_path = r'E:\研究生\实验\logicRegression/tmp/permission_intent_header.csv'
+        # 使用用户主目录下的tmp文件夹存储权限意图头文件，跨平台兼容
+        self.per_int_path = os.path.join(os.path.expanduser('~'), 'tmp', 'permission_intent_header.csv')
         self.get_header()
 
     def save_header(self):
+        # 确保目录存在 - 递归创建所有必要的父目录
+        os.makedirs(os.path.dirname(self.per_int_path), exist_ok=True)
+        # 保存头文件到指定路径
         with open(self.per_int_path, 'w', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(self.intent_header)
             writer.writerow(self.permission_header)
 
     def get_header(self):
+        # 检查权限意图头文件是否存在
         if not os.path.exists(self.per_int_path):
+            # 如果不存在则创建目录和文件
+            os.makedirs(os.path.dirname(self.per_int_path), exist_ok=True)
             with open(self.per_int_path, 'w'):
                 print('create pei_int_header.csv')
         else:
+            # 从现有文件读取头信息
             with open(self.per_int_path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 tmp = [row for row in reader]
                 if tmp:
                     self.intent_header = tmp[0]
                     self.permission_header = tmp[1]
+        # 读取API hook列表文件（相对路径）
         with open("source/hook_list_479.csv") as f:
             hookList = [row.split(',')[0] for row in f]
         del (hookList[0])
@@ -35,11 +45,17 @@ class Log:
 
 
 def get_feature_paths(path):
+    """
+    遍历指定路径下的所有txt文件
+    path: 要搜索的根目录路径
+    返回: 所有txt文件的完整路径列表
+    """
     filePaths = []
     for root, dirs, files in os.walk(path):
         for file in files:
             if '.txt' in file:
-                filePath = path + '\\' + file
+                # 使用os.path.join确保路径分隔符正确（跨平台兼容）
+                filePath = os.path.join(root, file)
                 filePaths.append(filePath)
     return filePaths
 
@@ -237,7 +253,8 @@ def get_dataset_sequence(dataset_path,length):
                 if item_data==[]:
                     fail_count+=1
                 else:
-                    md5=item.split('\\')[-1].split('.txt')[0]
+                    # 使用os.path.basename获取文件名（跨平台兼容）
+                    md5=os.path.basename(item).split('.txt')[0]
                     item_data.insert(0, 0)
                     item_data.insert(1, 1)
                     item_data.insert(2, md5)
@@ -251,59 +268,70 @@ def get_dataset_sequence(dataset_path,length):
                 if item_data==[]:
                     fail_count+=1
                 else:
-                    md5=item.split('\\')[-1].split('.txt')[0]
+                    # 使用os.path.basename获取文件名（跨平台兼容）
+                    md5=os.path.basename(item).split('.txt')[0]
                     item_data.insert(0, 1)
                     item_data.insert(1, 0)
                     item_data.insert(2, md5)
                     data_list.append(item_data)
             print('========',path,':',fail_count)
+    # 写入数据集文件到指定路径
     with open(dataset_path, 'w', encoding='utf-8', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerows(data_list)
 
 
 if __name__ == '__main__':
-    feature_path_lx = r'H:\samples\dataset_x\benign\feature'
-    feature_path_ey = r'H:\samples\dataset_x\malice\feature'
-    feature_path_2022_lx = r'H:\样本_年份\良性样本\2022\检测为良性_success\feature'
-    feature_path_2022_ey = r'H:\样本_年份\恶意样本\2022_malware_500_new\feature'
-    feature_path_2021_ey = r'H:\样本_年份\恶意样本\2021_malware_new_1510\feature'
-    dataset_sequence_5_path = r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_5.csv'
-    dataset_sequence_mal_5_path = r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_mal_5.csv'
-    dataset_sequence_ben_5_path = r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_ben_5.csv'
-    dataset_sequence_2022_5_path = r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_2022_5.csv'
-    dataset_sequence_2022_benign_5_path = r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_2022_benign_5.csv'
-    dataset_sequence_2022_malice_5_path = r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_2022_malice_5.csv'
-    dataset_sequence_2021_malice_5_path = r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_2021_malice_5.csv'
-    # get_dataset_frequency(dataset_frequency_path)
-    # target_path = [feature_path_2022_lx, None]
-    # target_path = [None,feature_path_2021_ey]
-    # target_path = [feature_path_lx,feature_path_ey]
-    # target_path = [None, feature_path_ey]
-    # get_dataset_sequence(dataset_sequence_5_path, 5)
-    # target_path = [feature_path_2022_lx, feature_path_2022_ey]
-    # get_dataset_sequence(dataset_sequence_2021_malice_5_path, 5)
-    ey_path=r'H:\cxl_dataset\479_api_per_intent_序列\恶意'
-    ey_no_year_path=ey_path+r'\无年份'
-    ey_2022_androzoo_500_3_path=ey_path+r'\2022_androzoo_500_3'
-    ey_2021_androzoo_1510_path=ey_path+r'\2021_androzoo_1510'
-    ey_2022_androzoo_986_6_path=ey_path+r'\2022_androzoo_986_6'
-    ey_2020=ey_path+r'\2020'
-    ey_paths=[ey_no_year_path,ey_2022_androzoo_500_3_path,ey_2021_androzoo_1510_path,ey_2022_androzoo_986_6_path,ey_2020]
-    # ey_paths=[ey_no_year_path]
-
-    lx_path=r'H:\cxl_dataset\479_api_per_intent_序列\良性'
-    lx_no_year_path=lx_path+r'\无年份'
-    lx_2021_androzoo_path=lx_path+r'\2021_androzoo'
-    lx_2022_androzoo_616_path=lx_path+r'\2022_androzoo_616'
-    lx_2022_androzoo_1500_path=lx_path+r'\2022_androzoo_1500'
-    lx_2021=lx_path+r'\2021'
-    lx_2022=lx_path+r'\2022'
-    lx_paths=[lx_no_year_path,lx_2021_androzoo_path,lx_2022_androzoo_616_path,lx_2022_androzoo_1500_path,lx_2021,lx_2022]
-    # lx_paths=[lx_no_year_path]
-
-    target_path = [lx_paths,ey_paths]
-    dataset_sequence_5_path_479=r'E:\研究生\实验\logicRegression\dataset\dataset_sequence_5_479.csv'
-    dataset_frequency_path=r'E:\研究生\实验\特征\dataset_frequency_479_1.csv'
-    get_dataset_sequence(dataset_sequence_5_path_479, 5)
-    # get_dataset_frequency(dataset_frequency_path)
+    # 获取当前脚本所在目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # 配置测试结果路径 - 使用test_result文件夹下的数据
+    test_result_dir = os.path.join(current_dir, 'test_result')
+    test_result_0_path = os.path.join(test_result_dir, '0')  # 类别0的特征文件
+    test_result_1_path = os.path.join(test_result_dir, '1')  # 类别1的特征文件
+    
+    # 检查测试结果目录是否存在
+    if not os.path.exists(test_result_dir):
+        print(f'[ERROR] 测试结果目录不存在: {test_result_dir}')
+        print('请先运行XTracer.py生成测试结果')
+        sys.exit(1)
+    
+    # 配置数据集输出路径
+    dataset_output_dir = os.path.join(current_dir, 'dataset_output')
+    os.makedirs(dataset_output_dir, exist_ok=True)
+    
+    # 设置目标路径 - [良性样本路径列表, 恶意样本路径列表]
+    lx_paths = [test_result_0_path] if os.path.exists(test_result_0_path) else []
+    ey_paths = [test_result_1_path] if os.path.exists(test_result_1_path) else []
+    
+    target_path = [lx_paths, ey_paths]
+    
+    # 输出文件路径
+    dataset_sequence_path = os.path.join(dataset_output_dir, 'test_dataset_sequence_5.csv')
+    dataset_frequency_path = os.path.join(dataset_output_dir, 'test_dataset_frequency.csv')
+    
+    print('='*60)
+    print('XTracer 特征提取模式启动')
+    print(f'测试结果路径: {test_result_dir}')
+    print(f'  - 类别0特征: {test_result_0_path}')
+    print(f'  - 类别1特征: {test_result_1_path}')
+    print(f'数据集输出路径: {dataset_output_dir}')
+    print(f'  - 序列特征: {dataset_sequence_path}')
+    print(f'  - 频率特征: {dataset_frequency_path}')
+    print('='*60)
+    
+    # 确保输出目录存在
+    os.makedirs(os.path.dirname(dataset_sequence_path), exist_ok=True)
+    os.makedirs(os.path.dirname(dataset_frequency_path), exist_ok=True)
+    
+    # 生成序列特征数据集
+    print('[INFO] 开始生成序列特征数据集...')
+    get_dataset_sequence(dataset_sequence_path, 5)
+    print(f'[INFO] 序列特征数据集已保存到: {dataset_sequence_path}')
+    
+    # 生成频率特征数据集
+    print('[INFO] 开始生成频率特征数据集...')
+    get_dataset_frequency(dataset_frequency_path)
+    print(f'[INFO] 频率特征数据集已保存到: {dataset_frequency_path}')
+    
+    print('[INFO] 特征提取完成！')
